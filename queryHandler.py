@@ -2,7 +2,7 @@ import subprocess
 import sys
 from typing import List, Tuple
 
-DIR = "/mnt/c/Users/franc/Desktop/sqlite_files/"
+DIR = "/home/lapllibrary/Fuzzer/"
 ENGINE = "sqlite3-3.26.0"
 
 def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
@@ -62,7 +62,7 @@ def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
         return (results, error_output)
 
 def main():
-    db_path = "/mnt/c/Users/franc/Desktop/sqlite_files/db2"
+    db_path = "/db"
     queries = [
         "CREATE TABLE t1(c1, c2, c3, c4, PRIMARY KEY (c4, c3));",
         "INSERT INTO t1(c3) VALUES (0), (0), (0), (0), (0), (0), (0), (0), (0), (0), (NULL), (1), (0);",
