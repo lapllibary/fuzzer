@@ -24,11 +24,45 @@ def orderByClause(columns):
     elif(r == 1):
       clause +='ASC'
     return clause
-  #TODO
-def whereClause():
+
+def getRandomValue(type:str):
+  if type == "INTEGER":
+    value=(random.randchoice([-(2**63 - 1) - 1, 2**63 - 1,0]))
+  elif type == "TEXT":
+      value=(''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(0, 32))))
+  elif type == "REAL":
+      value=(random.uniform(-1e307, 1e307))
+  elif type == "BLOB":
+      value=(bytearray(random.getrandbits(8) for _ in range(256)))
+  else:
+      i = random.choice([0, 1])
+      if i == 0:
+          value=(random.randint(-(2**63 - 1) - 1, 2**63 - 1))
+      else:
+          value=(random.uniform(-1e307, 1e307))
+  if(random.randint(0,6)==5):
+     value = "NULL"
+  return str(value)
+
+def whereClause(columns,table,t):
   clause = "WHERE"
-  clause += " "
+  column = random.choice(columns)
+  clause += generatePredicate(column)
   return clause
+
+def generatePredicate(columns,table,t):
+  operator = random.choice(operators)
+  column = random.choice(columns)
+  c2 = []
+  for c in columns:
+     if(table[column][t] == table[c][t]):
+        c2.append(c)
+  if(random.randint(0,10)):
+    value = getRandomValue(table[column][t])
+  else:
+     value = random.choice(c2)
+  return  column +" " + operator + " " + value 
+  
 def createTable():
   global Queries
   global Tables
@@ -56,30 +90,26 @@ def insertIntoColumns(Tables:dict):
   num_values = random.randint(1,len(all_columns)+1)
   column = random.choices(all_columns.keys, k = num_values)
   columns = column[0]
+  values = "'" + getRandomValue(Tables[table][column[0]]) +" ' "
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
-  query = (query + "INSERT INTO " + table + "("  + columns+ ")" + "VALUES" )
-  values = ""
-  #TODO: Change into random data
-  for i in range(num_values):
-    values += "(0)"
-    if(i!=num_values):
-      values += ", "
-  query += values
+     values = values + " ," + "'" + getRandomValue(Tables[table][column[i]]) +"'"
+  query = (query + "INSERT INTO " + table + "("  + columns+ ")" + "VALUES(" + values +");" )
+
   #                "(0), (0), (0), (0), (0), (0), (0), (0), (0), (0), (NULL), (1), (0);")
   return query
 QueryFunctions.append(insertIntoColumns)
 
 def select(Tables:dict):
-  table = random.choice(Tables.keys)
-  all_columns = Tables[table]
+  t = random.choice(Tables.keys)
+  all_columns = Tables[t]
   num_values = random.randint(1,len(all_columns)+1)
   column = random.choices(all_columns.keys, k = num_values)
   columns = column[0]
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
-  query = ("SELECT " + columns+" " )
-  query = ""
+  query = ("SELECT " + columns+" FROM" + t + whereClause(columns,Tables,t))
+
   return query
 QueryFunctions.append(select)
 
@@ -92,8 +122,8 @@ def update(Tables:dict):
   columns = column[0]
   query +=(table+"SET")
   for i in range(num_values-1):
-    query+=(column[i] + "=" +"NULL" +"," )#TODO change NULL to random value
-  query+=(column[num_values-1] + "=" +"NULL" )
+    query+=(column[i] + "= " +getRandomValue(Tables[table][column[i]]) +"," )
+  query+=(column[num_values-1] + "= " + getRandomValue(Tables[table][column[num_values-1]] ))
   query+= whereClause()
   return query
 QueryFunctions.append(update)
