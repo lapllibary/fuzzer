@@ -1,7 +1,7 @@
 import random
 import string
 import sys
-
+from sqlGenerator import *
 BINARY_COMPARISON_EXPRESSIONS = ["=", "==", "<", "<=", ">", ">=", "!=", "IN", "NOT IN", "BETWEEN", "IS", "IS NOT"]
 
 def random_data_type():

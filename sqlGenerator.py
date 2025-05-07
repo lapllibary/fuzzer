@@ -27,7 +27,7 @@ def orderByClause(columns):
 
 def getRandomValue(type:str):
   if type == "INTEGER":
-    value=(random.randchoice([-(2**63 - 1) - 1, 2**63 - 1,0]))
+    value=(random.choice([-(2**63 - 1) - 1, 2**63 - 1,0]))
   elif type == "TEXT":
       value=(''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(0, 32))))
   elif type == "REAL":
@@ -45,9 +45,10 @@ def getRandomValue(type:str):
   return str(value)
 
 def whereClause(columns,table,t):
-  clause = "WHERE"
+  clause = "WHERE "
   column = random.choice(columns)
-  clause += generatePredicate(column)
+  clause += generatePredicate(columns,table,t)
+  
   return clause
 
 def generatePredicate(columns,table,t):
@@ -55,10 +56,10 @@ def generatePredicate(columns,table,t):
   column = random.choice(columns)
   c2 = []
   for c in columns:
-     if(table[column][t] == table[c][t]):
+     if(table[t][column] == table[t][c]):
         c2.append(c)
   if(random.randint(0,10)):
-    value = getRandomValue(table[column][t])
+    value = getRandomValue(table[t][column])
   else:
      value = random.choice(c2)
   return  column +" " + operator + " " + value 
@@ -71,10 +72,10 @@ QueryFunctions.append(createTable)
 
 def selectDisticnt(Tables:dict):
   query = "SELECT DISTINCT "
-  table = random.choice(Tables.keys)
-  all_columns = Tables[table]
+  table = random.choice(list(Tables.keys()))
+  all_columns = list(Tables[table].keys())
   num_values = random.randint(1,len(all_columns)+1)
-  column = random.choices(all_columns.keys, k = num_values)
+  column = random.choices(all_columns.keys(), k = num_values)
   columns = column[0]
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
@@ -85,10 +86,10 @@ QueryFunctions.append(selectDisticnt)
 def insertIntoColumns(Tables:dict):
   query = ""
   #table to insert into 
-  table = random.choice(Tables.keys)
-  all_columns = Tables[table]
+  table = random.choice(list(Tables.keys()))
+  all_columns = list(Tables[table].keys())
   num_values = random.randint(1,len(all_columns)+1)
-  column = random.choices(all_columns.keys, k = num_values)
+  column = random.choices(all_columns.keys(), k = num_values)
   columns = column[0]
   values = "'" + getRandomValue(Tables[table][column[0]]) +" ' "
   for i in range(1,num_values-1):
@@ -101,43 +102,43 @@ def insertIntoColumns(Tables:dict):
 QueryFunctions.append(insertIntoColumns)
 
 def select(Tables:dict):
-  t = random.choice(Tables.keys)
-  all_columns = Tables[t]
+  t = random.choice(list(Tables.keys()))
+  all_columns = list(Tables[t].keys())
   num_values = random.randint(1,len(all_columns)+1)
-  column = random.choices(all_columns.keys, k = num_values)
+  column = random.choices(all_columns, k = num_values)
   columns = column[0]
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
-  query = ("SELECT " + columns+" FROM" + t + whereClause(columns,Tables,t))
+  query = ("SELECT " + columns+" FROM " + t +" " + whereClause(column,Tables,t) +";" )
 
   return query
 QueryFunctions.append(select)
 
 def update(Tables:dict):
   query = "UPDATE"
-  table = random.choice(Tables.keys)
-  all_columns = Tables[table]
+  table = random.choice(list(Tables.keys()))
+  all_columns = list(Tables[table].keys())
   num_values = random.randint(1,len(all_columns)+1)
-  column = random.choices(all_columns.keys, k = num_values)
+  column = random.choices(all_columns.keys(), k = num_values)
   columns = column[0]
   query +=(table+"SET")
   for i in range(num_values-1):
     query+=(column[i] + "= " +getRandomValue(Tables[table][column[i]]) +"," )
   query+=(column[num_values-1] + "= " + getRandomValue(Tables[table][column[num_values-1]] ))
-  query+= whereClause()
+  query+= whereClause(column,Tables,table)
   return query
 QueryFunctions.append(update)
 
 def delete(Tables:dict):
   query = "DELETE FROM"
-  table = random.choice(Tables.keys)
+  table = random.choice(list(Tables.keys()))
   query +=  table
-  query += (whereClause() +";")
+  query += (whereClause(list(table.keys()),Tables,table) +";")
 
 def selectFunction(Tables:dict):
-  table = random.choice(Tables.keys)
-  all_columns = Tables[table]
-  column = random.choice(all_columns.keys)
+  table = random.choice(list(Tables.keys()))
+  all_columns = list(Tables[table].keys())
+  column = random.choice(all_columns.keys())
   query = ("SELECT " + random.choice(functions) + +"("+ column +")" +"FROM" + table)
   query = ""
   return query
