@@ -74,7 +74,7 @@ def create_random_table(ind):
         comm += f"c{i} {col_type} {constraints}, "
     if not primaryKey:
         comm += f"c{col_num + 1} INTEGER PRIMARY KEY"
-        table.add_column("INTEGER")
+        table[f"t{ind}"][f"c{i}"]="INTEGER"
     else:
         comm += "PRIMARY KEY ("
         comm += ", ".join(primaryKey)
@@ -88,4 +88,7 @@ def create_random_table(ind):
 
 table, _ = create_random_table(1)
 c = add_random_row(table)
-print(c)
+#query = whereExtendedTLP(table)
+#query = selectDisticntTLP(table)
+#query = aggregateTLP(table)
+print(query)
