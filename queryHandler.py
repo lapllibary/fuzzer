@@ -2,7 +2,12 @@ import subprocess
 import sys
 from typing import List, Tuple
 
-DIR = "/home/lapllibrary/Fuzzer/"
+from collections import deque
+
+from tableGenerator import *
+from mutateQuery import * 
+
+DIR = "/mnt/c/Users/franc/Desktop/ASL/fuzzer/"
 ENGINE = "sqlite3-3.26.0"
 
 def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
@@ -63,24 +68,36 @@ def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
 
 def main():
     db_path = "/db"
-    queries = [
-        "CREATE TABLE t1(c1, c2, c3, c4, PRIMARY KEY (c4, c3));",
-        "INSERT INTO t1(c3) VALUES (0), (0), (0), (0), (0), (0), (0), (0), (0), (0), (NULL), (1), (0);",
-        "UPDATE t1 SET c2 = 0;",
-        "INSERT INTO t1(c1) VALUES (0), (0), (NULL), (0), (0);",
-        "ANALYZE t1;",
-        "UPDATE t1 SET c3 = 1;",
-        "SELECT DISTINCT * FROM t1 WHERE t1.c3 = 1;"
-    ]
+
+    tables = {}
+    queries = []
+
+    for i in range(5):
+        t, q = create_random_table(i)
+        tables[f"t{i}"] = t[f"t{i}"]
+        queries += [q]
+        for _ in range(2):
+            q = add_random_row(t)
+            queries += [q]
 
     results, error = execute_sql_queries(queries, db_path)
 
-    # Print all results
-    for i, result in enumerate(results, 1):
-        print(f"Result {i}:\n{result}\n")
+    mutation_queue = deque()
+    mutation_queue.append("SELECT t1.c1 FROM t1;")
+    while mutation_queue:
+        q = mutation_queue.popleft()
+        mutations = mutate_select(q, tables)
+        for m in mutations:
+            mutation_queue.append(m)
+        results, error = execute_sql_queries([q], db_path)
+        # Print all results
+        for i, result in enumerate(results, 1):
+            print(f"Result {i}:\n{result}\n")
 
-    if error:
-        print(f"Errors encountered:\n{error}", file=sys.stderr)
+        if error:
+            print(f"Errors encountered:\n{error}", file=sys.stderr)
+
+    
 
 if __name__ == "__main__":
     main()
