@@ -47,6 +47,9 @@ def getRandomValue(type:str):
           value=(random.randint(-(2**63 - 1) - 1, 2**63 - 1))
       else:
           value=(random.uniform(-1e307, 1e307))
+
+  if(type == "TEXT"):
+        value = "\'"+ value +"\'"
   if(random.randint(0,5)==5):
      value = "NULL"
   return str(value)
@@ -62,6 +65,20 @@ def whereClause(columns,table,t):
 def generatePredicate(columns,table,t):
   operator = random.choice(operators)
   column = random.choice(columns)
+  if(operator=="BETWEEN"):
+    c2 = []
+    for c in columns:
+      if(table[t][column] == table[t][c]):
+          c2.append(c)
+    if(random.randint(0,4)):
+      value1 = getRandomValue(table[t][column])
+    else:
+      value1 = random.choice(c2)
+    if(random.randint(0,4)):
+      value2 = getRandomValue(table[t][column])
+    else:
+      value2 = random.choice(c2)
+    return  column +" " + operator + " " + value1 +" AND "+ value2
   c2 = []
   for c in columns:
      if(table[t][column] == table[t][c]):
@@ -70,8 +87,7 @@ def generatePredicate(columns,table,t):
     value = getRandomValue(table[t][column])
   else:
     value = random.choice(c2)
-  if(table[t][column]== "TEXT"):
-      value = "\'"+value +"\'"
+
   return  column +" " + operator + " " + value 
 
 
@@ -130,20 +146,28 @@ def update(Tables:dict):
   all_columns = list(Tables[table].keys())
   num_values = random.randint(1,len(all_columns))
   column = random.sample(all_columns,  num_values)
-  columns = column[0]
+
   query +=(table+" SET ")
   for i in range(num_values-1):
-    query+=(column[i] + "= " +getRandomValue(Tables[table][column[i]]) +"," )
+    query+=(column[i] + "= " +getRandomValue(Tables[table][column[i]]) +", " )
   query+=(column[num_values-1] + " = " + getRandomValue(Tables[table][column[num_values-1]] ))
+  query+=" "
   query+= whereClause(column,Tables,table)
+  query+=";"
   return query
 QueryFunctions.append(update)
 
 def delete(Tables:dict):
-  query = "DELETE FROM"
+  query = "DELETE FROM "
   table = random.choice(list(Tables.keys()))
-  query +=  table
-  query += (whereClause(list(table.keys()),Tables,table) )
+  query +=  (table +" ")
+  columns = list(Tables[table].keys())
+  query += (whereClause(columns,Tables,table) +";")
+  return query
+
+def deleteTable(table:str):
+  query = "DROP TABLE " + table
+  return query
 
 def selectFunction(Tables:dict):
   table = random.choice(list(Tables.keys()))
@@ -170,25 +194,24 @@ def whereExTLPClause(columns,table,t):
       predicate = random.choice(["TRUE","FALSE"])
     else:
        predicate = generatePredicate(columns,table,t)
-    clauses =[" AND "+ predicate," AND NOT" + predicate," AND " +predicate + " IS NULL"]
+    clauses =[" AND "+ predicate," AND NOT " + predicate," AND " +predicate + " IS NULL"]
     return clauses
 
 def selectDistinctTLP(Tables):
-  query = "SELECT DISTINCT "
-  table = random.choice(list(Tables.keys()))
-  all_columns = list(Tables[table].keys())
+  t = random.choice(list(Tables.keys()))
+  all_columns = list(Tables[t].keys())
   num_values = random.randint(1,len(all_columns))
-  column = random.sample(all_columns,  num_values)
+  column = random.sample(all_columns, num_values)
   columns = column[0]
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
-  query += (columns + " FROM " + table)
-  clauses = whereTLP(all_columns,Tables,table)
+  query = ("SELECT DISTINCT " + columns+" FROM " + t +" "  )
+  clauses = whereTLPClause(all_columns,Tables,t)
   query0 = query
   query1 = query + clauses[0]
   query2 = query + clauses[1]
   query3 = query + clauses[2]
-  return [query0,query1 +" UNION " + query2 + " UNION " + query3]
+  return [query0,query1 +" UNION ALL " + query2 + " UNION ALL " + query3]
 
 def whereTLP(Tables:dict):
   t = random.choice(list(Tables.keys()))

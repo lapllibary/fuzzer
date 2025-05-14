@@ -1,3 +1,4 @@
 sqlite.zip
 test.py
-sqlite/sqlite
+sqlite/
+_pycache_

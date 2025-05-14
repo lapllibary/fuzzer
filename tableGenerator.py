@@ -21,13 +21,19 @@ def add_random_row(t):
         elif t[t_name][col] == "REAL":
             random_values.append(random.uniform(-1e307, 1e307))
         elif t[t_name][col] == "BLOB":
-            random_values.append(bytearray(random.getrandbits(8) for _ in range(256)))
+            random_values.append(bytearray(
+        random.randint(0x20, 0x7E)
+        for _ in range(256)
+    ))
         else:
             i = random.choice([0, 1])
             if i == 0:
                 random_values.append(random.randint(-(2**63 - 1) - 1, 2**63 - 1))
             else:
                 random_values.append(random.uniform(-1e307, 1e307))
+        if(random.randint(0,5)==0):
+            random_values.pop(-1)
+            random_values.append("NULL")
         comm += f"c{n_col}" + ", "
         n_col += 1
     comm = comm.strip(", ") + ") VALUES ("
@@ -35,20 +41,21 @@ def add_random_row(t):
         if isinstance(value, bytearray):
             comm += f"X'{value.hex()}', "
         else:
-            comm += f"'{value}', " if isinstance(value, str) else str(value) + ", "
+            comm += f"'{value}', " if isinstance(value, str)&(value!="NULL") else str(value) + ", "
     comm = comm.strip(", ") + ");"
     #print(comm)
     return comm
 
 def add_random_constraints(col_type):
     primary_key = random.choice([True, False])
+    primary_key = False
     constraints = ""
     
-    if random.choice([True, False]):
-        constraints += "UNIQUE "
+    # if random.choice([True, False]):
+    #     constraints += "UNIQUE "
 
-    if random.choice([True, False]):
-        constraints += "NOT NULL "
+    # if random.choice([True, False]):
+    #     constraints += "NOT NULL "
     
     #CHECK
     #DEFAULT
@@ -81,5 +88,5 @@ def create_random_table(ind):
         comm += ")"
     comm += ");"
     
-    print(comm)
+    # print(comm)
     return table, comm

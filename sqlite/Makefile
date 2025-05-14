@@ -15,7 +15,7 @@
 # The toplevel directory of the source tree.  This is the directory
 # that contains this "Makefile.in" and the "configure.in" script.
 #
-TOP = /home/test/sqlite
+TOP = C:\Users\huaiqian\Desktop\liuhuaiqian\Exchange\Automated_Software_Testing\fuzzer\fuzzergenerator\sqlite
 
 # C Compiler and options for use in building executables that
 # will run on the platform that is doing the build.
@@ -137,7 +137,7 @@ SHLIB_SUFFIX =
 #
 GCOV_CFLAGS1 = -DSQLITE_COVERAGE_TEST=1 -fprofile-arcs -ftest-coverage
 GCOV_LDFLAGS1 = -lgcov
-USE_GCOV = 0
+USE_GCOV = 1
 LTCOMPILE_EXTRAS += $(GCOV_CFLAGS$(USE_GCOV))
 LTLINK_EXTRAS += $(GCOV_LDFLAGS$(USE_GCOV))
 
