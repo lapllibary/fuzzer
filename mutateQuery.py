@@ -62,9 +62,9 @@ def remove_column(parsed_query, t_name, tables):
     if len(select_items) == 1:
         return [parsed_query] 
     
-
-    to_remove = random.choice(select_items)
-    select.args['expressions'].remove(to_remove)
+    if select_items:
+        to_remove = random.choice(select_items)
+        select.args['expressions'].remove(to_remove)
     
     return [parsed_query]
 
@@ -182,7 +182,7 @@ def rem_where_cond(parsed_query, t_name, tables):
     return [parsed_query]
 
 def add_inj(parsed_query, t_name, tables):
-    val = random.choice([BORDER_CASE_VALUES])
+    val = random.choice(BORDER_CASE_VALUES)
     inj = f"{val} = {val}"
     select = create_where_cond(parsed_query, inj, "or")
 
@@ -348,33 +348,19 @@ def add_having_cond(parsed_query, t_name, tables):
     return mutations
 
 
-MUTATIONS = [modify_columns, add_column, remove_column, add_where_cond, add_inj, rem_where_cond, add_distinc, add_join, add_agg_func, add_having_cond]
-NUM_MUTATIONS = 10
+MUTATIONS = [modify_columns, add_column, add_where_cond, add_inj, add_distinc, add_join, add_agg_func, add_having_cond]
 
 def mutate_select(query, tables):
     parsed = sqlglot.parse_one(query)
     t = parsed.find(exp.From).this.sql()
     mutated_queries = []
     for mutation in MUTATIONS:
-        for _ in range(NUM_MUTATIONS):
-            parsed_copy = parsed.copy()
-            mutations_queries = (mutation(parsed_copy, t, tables))
-            for m in mutations_queries:
-                if not m.sql() == parsed.sql():
-                    print(m.sql())
-                    mutated_queries.append(m.sql() + ";")
+        parsed_copy = parsed.copy()
+        mutations_queries = (mutation(parsed_copy, t, tables))
+        for m in mutations_queries:
+            if not m.sql() == parsed.sql():
+                #print(m.sql())
+                mutated_queries.append(m.sql() + ";")
 
     return mutated_queries
 
-
-t, _ = create_random_table(1)
-print(t["t1"])
-t["c"] = {
-    "c1" : "INTEGER"
-}
-t["p"] = {
-    "c1" : "INTEGER"
-}
-queries = ["SELECT t1.c1 FROM t1 GROUP BY t1.c1"]
-for query in queries:
-    new_queries = mutate_select(query, t)

@@ -1,3 +1,8 @@
 sqlite.zip
 test.py
-sqlite/sqlite
+db_oracle
+db1_3.26.0
+db1_3.39.4
+*.txt
+bld/*
+sqlite/*

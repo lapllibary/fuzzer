@@ -21,7 +21,7 @@ def add_random_row(t):
         elif t[t_name][col] == "REAL":
             random_values.append(random.uniform(-1e307, 1e307))
         elif t[t_name][col] == "BLOB":
-            random_values.append(bytearray(random.getrandbits(8) for _ in range(256)))
+            random_values.append((''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(0, 32)))).encode())
         else:
             i = random.choice([0, 1])
             if i == 0:
@@ -32,7 +32,7 @@ def add_random_row(t):
         n_col += 1
     comm = comm.strip(", ") + ") VALUES ("
     for value in random_values:
-        if isinstance(value, bytearray):
+        if isinstance(value, bytes):
             comm += f"X'{value.hex()}', "
         else:
             comm += f"'{value}', " if isinstance(value, str) else str(value) + ", "
@@ -43,18 +43,6 @@ def add_random_row(t):
 def add_random_constraints(col_type):
     primary_key = random.choice([True, False])
     constraints = ""
-    
-    if random.choice([True, False]):
-        constraints += "UNIQUE "
-
-    if random.choice([True, False]):
-        constraints += "NOT NULL "
-    
-    #CHECK
-    #DEFAULT
-
-    #if primary_key and col_type == "INTEGER" and random.choice([True, False]):
-    #    constraints += "AUTOINCREMENT "
 
     return constraints.strip(), primary_key
 
@@ -81,5 +69,5 @@ def create_random_table(ind):
         comm += ")"
     comm += ");"
     
-    print(comm)
+    #print(comm)
     return table, comm

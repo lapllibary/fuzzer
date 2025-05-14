@@ -15,12 +15,12 @@
 # The toplevel directory of the source tree.  This is the directory
 # that contains this "Makefile.in" and the "configure.in" script.
 #
-TOP = /home/test/sqlite
+TOP = /mnt/c/Users/franc/Desktop/ASL/fuzzer/sqlite
 
 # C Compiler and options for use in building executables that
 # will run on the platform that is doing the build.
 #
-BCC = gcc  -fprofile-arcs -ftest-coverage -O0 -g
+BCC = gcc  -g -O2
 
 # TCC is the C Compile and options for use in building executables that
 # will run on the target platform.  (BCC and TCC are usually the
@@ -29,7 +29,7 @@ BCC = gcc  -fprofile-arcs -ftest-coverage -O0 -g
 # on the "make" command-line.  Ex:  "make CC=clang CFLAGS=-fsanitize=undefined"
 #
 CC = gcc
-CFLAGS =   -fprofile-arcs -ftest-coverage -O0 -g -DSQLITE_OS_UNIX=1
+CFLAGS =   -g -O2 -DSQLITE_OS_UNIX=1
 TCC = ${CC} ${CFLAGS} -I. -I${TOP}/src -I${TOP}/ext/rtree -I${TOP}/ext/icu
 TCC += -I${TOP}/ext/fts3 -I${TOP}/ext/async -I${TOP}/ext/session
 TCC += -I${TOP}/ext/userauth
@@ -47,11 +47,11 @@ TCC += -DNDEBUG
 
 # Compiler options needed for programs that use the TCL library.
 #
-TCC += 
+TCC += -I/usr/include/tcl8.6
 
 # The library that programs using TCL must link against.
 #
-LIBTCL = 
+LIBTCL = -L/usr/lib/x86_64-linux-gnu -ltcl8.6
 
 # Compiler options needed for programs that use the readline() library.
 #
@@ -68,7 +68,7 @@ TCC += -DSQLITE_THREADSAFE=1
 
 # Any target libraries which libsqlite must be linked against
 #
-TLIBS =  $(LIBS)
+TLIBS = -lz  $(LIBS)
 
 # Flags controlling use of the in memory btree implementation
 #
@@ -91,7 +91,7 @@ TCC += $(OPT_FEATURE_FLAGS)
 TCC += $(OPTS)
 
 # Add in compile-time options for some libraries used by extensions
-TCC += 
+TCC += -DSQLITE_HAVE_ZLIB=1
 
 # Version numbers and release number for the SQLite being compiled.
 #
@@ -109,7 +109,7 @@ TEXE =
 # variable is "1", the TCL extension library (libtclsqlite3.so) is built
 # and installed.
 #
-HAVE_TCL = 
+HAVE_TCL = 1
 
 # This is the command to use for tclsh - normally just "tclsh", but we may
 # know the specific version we want to use
@@ -122,7 +122,7 @@ TCLLIBDIR = /usr/share/tcltk/tcl8.6/sqlite3
 
 # The suffix used on shared libraries.  Ex:  ".dll", ".so", ".dylib"
 #
-SHLIB_SUFFIX = 
+SHLIB_SUFFIX = .so
 
 # If gcov support was enabled by the configure script, add the appropriate
 # flags here.  It's not always as easy as just having the user add the right
@@ -137,7 +137,7 @@ SHLIB_SUFFIX =
 #
 GCOV_CFLAGS1 = -DSQLITE_COVERAGE_TEST=1 -fprofile-arcs -ftest-coverage
 GCOV_LDFLAGS1 = -lgcov
-USE_GCOV = 0
+USE_GCOV = 1
 LTCOMPILE_EXTRAS += $(GCOV_CFLAGS$(USE_GCOV))
 LTLINK_EXTRAS += $(GCOV_LDFLAGS$(USE_GCOV))
 
@@ -631,7 +631,7 @@ libsqlite3.la:	$(LIBOBJ)
 
 libtclsqlite3.la:	tclsqlite.lo libsqlite3.la
 	$(LTLINK) -no-undefined -o $@ tclsqlite.lo \
-		libsqlite3.la  $(TLIBS) \
+		libsqlite3.la -L/usr/lib/x86_64-linux-gnu -ltclstub8.6 $(TLIBS) \
 		-rpath "$(TCLLIBDIR)" \
 		-version-info "8:6:8" \
 		-avoid-version
