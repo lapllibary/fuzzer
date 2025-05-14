@@ -38,13 +38,9 @@ def getRandomValue(type:str):
   elif type == "REAL":
       value=(random.uniform(-1e307, 1e307))
   elif type == "BLOB":
-    random_bytes = bytes(random.getrandbits(8) for _ in range(256))
-    
-    # Convert to hex without \x prefixes
-    hex_str = binascii.hexlify(random_bytes).decode('ascii')
-    
-    # Format for SQL (X'hexhexhex')
-    return f"X'{hex_str}'"
+    value = bytes(random.getrandbits(8) for _ in range(256))
+    value = f"X'{value.hex()}' "
+    return value
   else:
       i = random.choice([0, 1])
       if i == 0:
@@ -75,7 +71,7 @@ def generatePredicate(columns,table,t):
   else:
     value = random.choice(c2)
   if(table[t][column]== "TEXT"):
-      value = "\' "+value +" \'"
+      value = "\'"+value +"\'"
   return  column +" " + operator + " " + value 
 
 
@@ -240,10 +236,7 @@ def aggregateTLP(Tables:dict):
   return [query0,query1 +" UNION ALL " + query2 + " UNION ALL " + query3]
 
 
-with open("queries.txt", "w") as f:
-  for q in Queries:
-    f.write(q)
-    f.write('\n')
+
 
 
 

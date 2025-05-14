@@ -19,6 +19,7 @@ def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+
         text=True,
         bufsize=1,  # Line-buffered for better interaction
     )
@@ -63,45 +64,43 @@ def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
 
 def main():
     db_path = "/db"
-    table, comm = create_random_table(1)
     # c = add_random_row(table)
     check = []
     #0 for equal
     bugquery = []
-    query  = whereTLP(table)
 
     queries = [
     ]
     tables ={}
-    for i in range(5):
+    for i in range(1):
         t,q= create_random_table(i)
         tables[f"t{i}"] = t[f"t{i}"]
         queries += [q]
         for _ in range(2):
             q= add_random_row(t)
             queries += [q]
-    
-    # for i in range(1):
-    #     check.append(1)
-    #     query  = whereTLP(table)
-    #     bugquery.append(query[0]+";")
-    #     bugquery.append(query[1]+";")
-    #     queries.append(query[0]+";")
-    #     queries.append(query[1]+";")
-        
+    query0 = []
+    query1 = []
+    for i in range(1):
+        check.append(1)
+        query  = whereTLP(tables)
+        bugquery.append(query[0]+";")
+        bugquery.append(query[1]+";")
+        query0.append(query[0]+";")
+        query1.append(query[1]+";")
+    queries.extend(query0)
+    # queries.extend(query1)
 
     results, error = execute_sql_queries(queries, db_path)
 
     # Print all results
-    print("\n 1111111")
     for i, result in enumerate(results, 1):
         print(f"Result {i}:\n{result}\n")
-    # for i,c in enumerate(check):
-    #     if(check[i] == [1]):
-    #         if(results[i*2]!=results[i*2+1]):
-    #             with open("queries.txt", "a") as f:
+    # for i in 2*len(results):
+    #     if(results[i]!=results[2*i]):
+    #         with open("queries.txt", "a") as f:
     #                 for q in Queries:
-    #                     f.write(table)
+    #                     f.write(tables)
     #                     f.write("\n")
     #                     f.write(bugquery[i])
     #                     f.write("\n")
