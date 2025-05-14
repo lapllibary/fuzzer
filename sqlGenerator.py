@@ -1,5 +1,6 @@
 import random
 import string
+import binascii
 from enum import Enum
 from datetime import datetime, timedelta
 import uuid
@@ -37,7 +38,13 @@ def getRandomValue(type:str):
   elif type == "REAL":
       value=(random.uniform(-1e307, 1e307))
   elif type == "BLOB":
-      value=(bytearray(random.getrandbits(8) for _ in range(256)))
+    random_bytes = bytes(random.getrandbits(8) for _ in range(256))
+    
+    # Convert to hex without \x prefixes
+    hex_str = binascii.hexlify(random_bytes).decode('ascii')
+    
+    # Format for SQL (X'hexhexhex')
+    return f"X'{hex_str}'"
   else:
       i = random.choice([0, 1])
       if i == 0:
@@ -63,10 +70,12 @@ def generatePredicate(columns,table,t):
   for c in columns:
      if(table[t][column] == table[t][c]):
         c2.append(c)
-  if(random.randint(0,9)):
+  if(random.randint(0,4)):
     value = getRandomValue(table[t][column])
   else:
-     value = random.choice(c2)
+    value = random.choice(c2)
+  if(table[t][column]== "TEXT"):
+      value = "\' "+value +" \'"
   return  column +" " + operator + " " + value 
 
 
@@ -101,7 +110,7 @@ def insertIntoColumns(Tables:dict):
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
      values = values + " ,"  + getRandomValue(Tables[table][column[i]])
-  query = (query + "INSERT INTO " + table + "("  + columns+ ") " + "VALUES (" + values +");" )
+  query = (query + "INSERT INTO " + table + "("  + columns+ ") " + "VALUES (" + values +")" )
 
   #                "(0), (0), (0), (0), (0), (0), (0), (0), (0), (0), (NULL), (1), (0);")
   return query
@@ -115,8 +124,7 @@ def select(Tables:dict):
   columns = column[0]
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
-  query = ("SELECT " + columns+" FROM " + t +" " + whereClause(column,Tables,t) +";" )
-
+  query = ("SELECT " + columns+" FROM " + t +" " + whereClause(column,Tables,t) )
   return query
 QueryFunctions.append(select)
 
@@ -139,7 +147,7 @@ def delete(Tables:dict):
   query = "DELETE FROM"
   table = random.choice(list(Tables.keys()))
   query +=  table
-  query += (whereClause(list(table.keys()),Tables,table) +";")
+  query += (whereClause(list(table.keys()),Tables,table) )
 
 def selectFunction(Tables:dict):
   table = random.choice(list(Tables.keys()))
@@ -154,16 +162,16 @@ def whereTLPClause(columns,table,t):
     
     predicate = "NULL"
     if(random.randint(1,10)==1):
-      predicate = random.choice(["NULL","TRUE","FALSE"])
+      predicate = random.choice(["TRUE","FALSE"])
     else:
        predicate = generatePredicate(columns,table,t)
-    clauses =[" WHERE "+ predicate," WHERE NOT" + predicate," WHERE " +predicate + " IS NULL"]
+    clauses =[" WHERE "+ predicate," WHERE NOT " + predicate," WHERE " +predicate + " IS NULL"]
     return clauses
 def whereExTLPClause(columns,table,t):
     
     predicate = "NULL"
     if(random.randint(1,10)==1):
-      predicate = random.choice(["NULL","TRUE","FALSE"])
+      predicate = random.choice(["TRUE","FALSE"])
     else:
        predicate = generatePredicate(columns,table,t)
     clauses =[" AND "+ predicate," AND NOT" + predicate," AND " +predicate + " IS NULL"]
@@ -194,7 +202,7 @@ def whereTLP(Tables:dict):
   columns = column[0]
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
-  query = ("SELECT " + columns+" FROM " + t +" " + whereClause(all_columns,Tables,t) )
+  query = ("SELECT " + columns+" FROM " + t +" "  )
   clauses = whereTLPClause(all_columns,Tables,t)
   query0 = query
   query1 = query + clauses[0]
@@ -210,7 +218,7 @@ def whereExtendedTLP(Tables: dict):
   columns = column[0]
   for i in range(1,num_values-1):
      columns = columns +", " + column[i] 
-  query = ("SELECT " + columns+" FROM " + t +" " + whereClause(column,Tables,t) +";" )
+  query = ("SELECT " + columns+" FROM " + t +" " + whereClause(column,Tables,t)  )
   clauses = whereExTLPClause(all_columns,Tables,t)
   query0 = query
   query1 = query + clauses[0]
@@ -223,7 +231,7 @@ def aggregateTLP(Tables:dict):
   all_columns = list(Tables[table].keys())
   column = random.choice(all_columns)
   query = ("SELECT " + random.choice(functions)  +"("+ column +")" +" FROM " + table)
-  query = ("SELECT " + column+" FROM " + table +" " + whereClause(all_columns,Tables,table) )
+  query = ("SELECT " + column+" FROM " + table  )
   clauses = whereTLPClause(all_columns,Tables,table)
   query0 = query
   query1 = query + clauses[0]
@@ -232,10 +240,10 @@ def aggregateTLP(Tables:dict):
   return [query0,query1 +" UNION ALL " + query2 + " UNION ALL " + query3]
 
 
-# with open("queries.txt", "w") as f:
-#   for q in Queries:
-#     f.write(q)
-#     f.write('\n')
+with open("queries.txt", "w") as f:
+  for q in Queries:
+    f.write(q)
+    f.write('\n')
 
 
 

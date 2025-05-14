@@ -12,15 +12,15 @@ def add_random_row(t):
     t_name = next(iter(t))
     comm = f"INSERT INTO {t_name} ("
     random_values = []
-    col = 1
-    for type in t[t_name]:
-        if type == "INTEGER":
+    n_col = 1
+    for col in t[t_name]:
+        if t[t_name][col] == "INTEGER":
             random_values.append(random.randint(-(2**63 - 1) - 1, 2**63 - 1))
-        elif type == "TEXT":
+        elif t[t_name][col] == "TEXT":
             random_values.append(''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(0, 32))))
-        elif type == "REAL":
+        elif t[t_name][col] == "REAL":
             random_values.append(random.uniform(-1e307, 1e307))
-        elif type == "BLOB":
+        elif t[t_name][col] == "BLOB":
             random_values.append(bytearray(random.getrandbits(8) for _ in range(256)))
         else:
             i = random.choice([0, 1])
@@ -28,8 +28,8 @@ def add_random_row(t):
                 random_values.append(random.randint(-(2**63 - 1) - 1, 2**63 - 1))
             else:
                 random_values.append(random.uniform(-1e307, 1e307))
-        comm += f"c{col}" + ", "
-        col += 1
+        comm += f"c{n_col}" + ", "
+        n_col += 1
     comm = comm.strip(", ") + ") VALUES ("
     for value in random_values:
         if isinstance(value, bytearray):
@@ -74,21 +74,12 @@ def create_random_table(ind):
         comm += f"c{i} {col_type} {constraints}, "
     if not primaryKey:
         comm += f"c{col_num + 1} INTEGER PRIMARY KEY"
-        table[f"t{ind}"][f"c{i}"]="INTEGER"
+        table[f"t{ind}"][f"c{col_num + 1}"] = "INTEGER"
     else:
         comm += "PRIMARY KEY ("
         comm += ", ".join(primaryKey)
         comm += ")"
     comm += ");"
     
-    print(table)
-    for t in table:
-        print(t)
+    print(comm)
     return table, comm
-
-table, _ = create_random_table(1)
-c = add_random_row(table)
-#query = whereExtendedTLP(table)
-#query = selectDisticntTLP(table)
-#query = aggregateTLP(table)
-print(query)

@@ -1,7 +1,7 @@
 import subprocess
 import sys
 from typing import List, Tuple
-
+from tableGenerator import *
 DIR = "/home/lapllibrary/Fuzzer/"
 ENGINE = "sqlite3-3.26.0"
 
@@ -14,7 +14,7 @@ def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
         [
             "wsl", 
             DIR + ENGINE,
-            DIR + "db"
+           
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -63,22 +63,48 @@ def execute_sql_queries(queries: List[str], db: str) -> Tuple[List[str], str]:
 
 def main():
     db_path = "/db"
+    table, comm = create_random_table(1)
+    # c = add_random_row(table)
+    check = []
+    #0 for equal
+    bugquery = []
+    query  = whereTLP(table)
+
     queries = [
-        "CREATE TABLE t1(c1, c2, c3, c4, PRIMARY KEY (c4, c3));",
-        "INSERT INTO t1(c3) VALUES (0), (0), (0), (0), (0), (0), (0), (0), (0), (0), (NULL), (1), (0);",
-        "UPDATE t1 SET c2 = 0;",
-        "INSERT INTO t1(c1) VALUES (0), (0), (NULL), (0), (0);",
-        "ANALYZE t1;",
-        "UPDATE t1 SET c3 = 1;",
-        "SELECT DISTINCT * FROM t1 WHERE t1.c3 = 1;"
     ]
+    tables ={}
+    for i in range(5):
+        t,q= create_random_table(i)
+        tables[f"t{i}"] = t[f"t{i}"]
+        queries += [q]
+        for _ in range(2):
+            q= add_random_row(t)
+            queries += [q]
+    
+    # for i in range(1):
+    #     check.append(1)
+    #     query  = whereTLP(table)
+    #     bugquery.append(query[0]+";")
+    #     bugquery.append(query[1]+";")
+    #     queries.append(query[0]+";")
+    #     queries.append(query[1]+";")
+        
 
     results, error = execute_sql_queries(queries, db_path)
 
     # Print all results
+    print("\n 1111111")
     for i, result in enumerate(results, 1):
         print(f"Result {i}:\n{result}\n")
-
+    # for i,c in enumerate(check):
+    #     if(check[i] == [1]):
+    #         if(results[i*2]!=results[i*2+1]):
+    #             with open("queries.txt", "a") as f:
+    #                 for q in Queries:
+    #                     f.write(table)
+    #                     f.write("\n")
+    #                     f.write(bugquery[i])
+    #                     f.write("\n")
     if error:
         print(f"Errors encountered:\n{error}", file=sys.stderr)
 
