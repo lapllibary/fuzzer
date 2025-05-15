@@ -47,7 +47,7 @@ def add_column(parsed_query, t_name, tables):
 
 def remove_column(parsed_query, t_name, tables):
     select = parsed_query.find(exp.Select)
-    select_items = [item for item in select.expressions if isinstance(item, exp.Column)]
+    select_items = [item for item in select.expressions if isinstance(item, exp.Column) or isinstance(item, exp.Star)]
     available_cols = list(tables[t_name].keys())
 
     if len(select_items) == 1 and isinstance(select_items[0], exp.Star):
@@ -70,7 +70,7 @@ def remove_column(parsed_query, t_name, tables):
 
 def modify_columns(parsed_query, t_name, tables):
     select = parsed_query.find(exp.Select)
-    select_items = [item for item in select.expressions if isinstance(item, exp.Column)]
+    select_items = [item for item in select.expressions if isinstance(item, exp.Column) or isinstance(item, exp.Star)]
     available_cols = list(tables[t_name].keys())
 
     if len(select_items) == 1 and isinstance(select_items[0], exp.Star):
@@ -78,7 +78,10 @@ def modify_columns(parsed_query, t_name, tables):
 
     if select_items and len(available_cols) > 1:
         to_modify = random.choice(select_items)
-        available_cols.remove(to_modify.sql().split('.')[1])
+        if len(to_modify.sql().split('.')) > 1:
+            available_cols.remove(to_modify.sql().split('.')[1])
+        else:
+            return []
         col = random.choice(available_cols)
         to_modify.set('this', exp.Identifier(this=col))
     
@@ -100,38 +103,38 @@ def add_where_cond(parsed_query, t_name, tables):
     available_cols = list(tables[t_name].keys())
     
     mutations = []
+    b_op = random.choice(BIN_BOOL_EXP)
+    u_op = random.choice(UN_BOOL_EXP)
+    op = random.choice(OPERATORS)
 
-    for b_op in BIN_BOOL_EXP:
-        for u_op in UN_BOOL_EXP:
-            for op in OPERATORS:
-                col = f"{t_name}." + random.choice(available_cols)
-                copy = parsed_query.copy()
-                val = random.choice(BORDER_CASE_VALUES)
-                new_cond = f"{u_op} {col} {op} {val}"
-                select = create_where_cond(copy, new_cond, b_op)
-                mutations += [select]
+    col = f"{t_name}." + random.choice(available_cols)
+    copy = parsed_query.copy()
+    val = random.choice(BORDER_CASE_VALUES)
+    new_cond = f"{u_op} {col} {op} {val}"
+    select = create_where_cond(copy, new_cond, b_op)
+    mutations += [select]
 
-                if len(available_cols) >= 2:
-                    col1 = f"{t_name}." + random.choice(available_cols)
-                    col2 = f"{t_name}." + random.choice(available_cols)
-                    copy = parsed_query.copy()
-                    new_cond = f"{u_op} {col1} {op} {col2}"
-                    select = create_where_cond(copy, new_cond, b_op)
-                    mutations += [select]
+    if len(available_cols) >= 2:
+        col1 = f"{t_name}." + random.choice(available_cols)
+        col2 = f"{t_name}." + random.choice(available_cols)
+        copy = parsed_query.copy()
+        new_cond = f"{u_op} {col1} {op} {col2}"
+        select = create_where_cond(copy, new_cond, b_op)
+        mutations += [select]
 
-            col = f"{t_name}." + random.choice(available_cols)
-            copy = parsed_query.copy()
-            new_cond = f"{col} IS {u_op} NULL"
-            select = create_where_cond(copy, new_cond, b_op)
-            mutations += [select]
+    col = f"{t_name}." + random.choice(available_cols)
+    copy = parsed_query.copy()
+    new_cond = f"{col} IS {u_op} NULL"
+    select = create_where_cond(copy, new_cond, b_op)
+    mutations += [select]
 
-            col = f"{t_name}." + random.choice(available_cols)
-            val1 = random.choice(BORDER_CASE_VALUES)
-            val2 = random.choice(BORDER_CASE_VALUES)
-            copy = parsed_query.copy()
-            new_cond = f"{col} {u_op} BETWEEN {val1} AND {val2}"
-            select = create_where_cond(copy, new_cond, b_op)
-            mutations += [select]
+    col = f"{t_name}." + random.choice(available_cols)
+    val1 = random.choice(BORDER_CASE_VALUES)
+    val2 = random.choice(BORDER_CASE_VALUES)
+    copy = parsed_query.copy()
+    new_cond = f"{col} {u_op} BETWEEN {val1} AND {val2}"
+    select = create_where_cond(copy, new_cond, b_op)
+    mutations += [select]
 
     return mutations
 
@@ -250,29 +253,33 @@ def add_agg_func(parsed_query, t_name, tables):
     available_cols = list(tables[t_name].keys())
 
     col = random.choice(available_cols)
-    group_by_cols = [item for item in parsed_query.find(exp.Select).expressions if isinstance(item, exp.Column)]
-    group_exprs = [exp.Column(this=col) for col in group_by_cols]
 
     mutations = []
+    f = random.choice(AGG_FUNC)
+    copy = parsed_query.copy()
+    select = copy.find(exp.Select)
 
-    for f in AGG_FUNC:
-        copy = parsed_query.copy()
-        select = copy.find(exp.Select)
+    agg_class = getattr(exp, f)
 
-        agg_class = getattr(exp, f)
+    if (tables[t_name][col] == "NUMERIC" or tables[t_name][col] == "INTEGER" or tables[t_name][col] == "REAL") and not f == "Count":
+        agg_expr = agg_class(this=exp.Column(this=f"{t_name}." + col))
+        select.args['expressions'].append(agg_expr)
+    if f == "Count":
+        col = random.choice(["*"] + [col])
+        agg_this = exp.Star() if col == '*' else exp.Column(this=f"{t_name}." + col)
+        agg_expr = agg_class(this=agg_this)
+        select.args['expressions'].append(agg_expr)
+    
+    group_by_cols = [item for item in parsed_query.find(exp.Select).expressions if isinstance(item, exp.Column)]
+    if len(group_by_cols) == 0:
+        col = random.choice(available_cols)
+        group_exprs = [exp.Column(this=f"{t_name}." + col)]
+    else:
+        group_exprs = [exp.Column(this=col) for col in group_by_cols]
 
-        if (tables[t_name][col] == "NUMERIC" or tables[t_name][col] == "INTEGER" or tables[t_name][col] == "REAL") and not f == "Count":
-            agg_expr = agg_class(this=exp.Column(this=f"{t_name}." + col))
-            select.args['expressions'].append(agg_expr)
-        if f == "Count":
-            col = random.choice(["*"] + [col])
-            agg_this = exp.Star() if col == '*' else exp.Column(this=f"{t_name}." + col)
-            agg_expr = agg_class(this=agg_this)
-            select.args['expressions'].append(agg_expr)
-
-        select.set('group', exp.Group(expressions=group_exprs))
+    select.set('group', exp.Group(expressions=group_exprs))
         
-        mutations += [select]
+    mutations += [select]
 
 
     return mutations
@@ -292,7 +299,7 @@ def create_having_cond(parsed_query, new_cond, b_op):
 def add_having_cond(parsed_query, t_name, tables):
     available_cols = list(tables[t_name].keys())
     
-    select_items = [item for item in parsed_query.find(exp.Select).expressions if not isinstance(item, exp.Column)]
+    select_items = [item for item in parsed_query.find(exp.Select).expressions if not isinstance(item, exp.Column) and not isinstance(item, exp.Star)]
     mutations = []
     if parsed_query.find(exp.Select).args.get('group'):
         f = random.choice(AGG_FUNC)
@@ -304,51 +311,67 @@ def add_having_cond(parsed_query, t_name, tables):
             col = random.choice(["*"] + [col])
             agg_this = exp.Star() if col == '*' else exp.Column(this=f"{t_name}." + col)
             select_items += [agg_class(this=agg_this)]
-    if select_items:
-        for b_op in BIN_BOOL_EXP:
-            for u_op in UN_BOOL_EXP:
-                for op in OPERATORS:
-                    agg = random.choice(select_items)
-                    copy = parsed_query.copy()
-                    val = random.choice(BORDER_CASE_VALUES)
-                    new_cond = f"{u_op} {agg} {op} {val}"
-                    select = create_having_cond(copy, new_cond, b_op)
-                    mutations += [select]
+        if select_items:
+            b_op = random.choice(BIN_BOOL_EXP)
+            u_op = random.choice(UN_BOOL_EXP)
+            op = random.choice(OPERATORS)
+            agg = random.choice(select_items)
+            copy = parsed_query.copy()
+            val = random.choice(BORDER_CASE_VALUES)
+            new_cond = f"{u_op} {agg} {op} {val}"
+            select = create_having_cond(copy, new_cond, b_op)
+            mutations += [select]
 
-                    col = f"{t_name}." + random.choice(available_cols)
-                    copy = parsed_query.copy()
-                    new_cond = f"{u_op} {agg} {op} {col}"
-                    select = create_having_cond(copy, new_cond, b_op)
-                    mutations += [select]
+            col = f"{t_name}." + random.choice(available_cols)
+            copy = parsed_query.copy()
+            new_cond = f"{u_op} {agg} {op} {col}"
+            select = create_having_cond(copy, new_cond, b_op)
+            mutations += [select]
 
-                    if len(select_items) >= 2:
-                        agg2 = random.choice(select_items).sql()
-                        copy = parsed_query.copy()
-                        new_cond = f"{u_op} {agg} {op} {agg2}"
-                        select = create_having_cond(copy, new_cond, b_op)
-                        mutations += [select]
-
-                agg = random.choice(select_items).sql()
+            if len(select_items) >= 2:
+                agg2 = random.choice(select_items).sql()
                 copy = parsed_query.copy()
-                new_cond = f"{agg} IS {u_op} NULL"
+                new_cond = f"{u_op} {agg} {op} {agg2}"
                 select = create_having_cond(copy, new_cond, b_op)
                 mutations += [select]
 
-                agg = random.choice(select_items).sql()
-                val1 = random.choice(BORDER_CASE_VALUES)
-                val2 = random.choice(BORDER_CASE_VALUES)
-                copy = parsed_query.copy()
-                new_cond = f"{agg} {u_op} BETWEEN {val1} AND {val2}"
-                select = create_having_cond(copy, new_cond, b_op)
-                mutations += [select]
+            agg = random.choice(select_items).sql()
+            copy = parsed_query.copy()
+            new_cond = f"{agg} IS {u_op} NULL"
+            select = create_having_cond(copy, new_cond, b_op)
+            mutations += [select]
+
+            agg = random.choice(select_items).sql()
+            val1 = random.choice(BORDER_CASE_VALUES)
+            val2 = random.choice(BORDER_CASE_VALUES)
+            copy = parsed_query.copy()
+            new_cond = f"{agg} {u_op} BETWEEN {val1} AND {val2}"
+            select = create_having_cond(copy, new_cond, b_op)
+            mutations += [select]
 
     
 
 
     return mutations
 
+def add_order_by(parsed_query, t_name, tables):
+    
+    select = parsed_query.find(exp.Select)
+    select_items = [item for item in select.expressions if isinstance(item, exp.Column)]
+    if not select_items:
+        return [parsed_query]
+    
+    col = random.choice(select_items)
+    ran_ord = random.choice(["ASC", "DESC"])
+    order_expr = exp.Ordered(this=col, order=ran_ord, desc=random.choice([True, False]))
+    if select.args.get('order'):
+        select.args["order"].expressions.append(order_expr)
+    else:
+        select.set("order", exp.Order(expressions=[order_expr]))
 
-MUTATIONS = [modify_columns, add_column, add_where_cond, add_inj, add_distinc, add_join, add_agg_func, add_having_cond]
+    return [parsed_query]
+
+MUTATIONS = [modify_columns, add_column, add_where_cond, add_inj, add_distinc, add_join, add_agg_func, add_having_cond, add_order_by]
 
 def mutate_select(query, tables):
     parsed = sqlglot.parse_one(query)
@@ -360,7 +383,8 @@ def mutate_select(query, tables):
         for m in mutations_queries:
             if not m.sql() == parsed.sql():
                 #print(m.sql())
-                mutated_queries.append(m.sql() + ";")
+                import re
+                mutated_queries.append(re.sub(r'\sNULLS\s(FIRST|LAST)(?=\s|;|$)', '', m.sql(), flags=re.IGNORECASE) + ";")
 
     return mutated_queries
 
